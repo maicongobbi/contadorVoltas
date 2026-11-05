@@ -1,0 +1,46 @@
+datasource db {
+    provider = 'postgresql'
+    url      = env('DATABASE_URL')
+}
+
+plugin policy {
+    provider = '@zenstackhq/plugin-policy'
+}
+
+// Usuário autenticado (vem do JWT do Neon Auth). Os usuários em si ficam no schema neon_auth.
+type Auth {
+    id    String @id
+    email String?
+    @@auth
+}
+
+// Um treino (sessão de contagem)
+model Treino {
+    id                 String          @id @default(cuid())
+    userId             String          @default(auth().id)
+    nome               String?
+    comprimentoPiscina Int             @default(25)
+    inicio             DateTime        @default(now())
+    fim                DateTime?
+    raias              RaiaResultado[]
+    createdAt          DateTime        @default(now())
+    updatedAt          DateTime        @updatedAt
+
+    @@index([userId])
+    // Cada usuário só vê e altera os próprios treinos
+    @@allow('all', auth() != null && auth().id == userId)
+}
+
+// Resultado de uma raia dentro de um treino
+model RaiaResultado {
+    id       String @id @default(cuid())
+    treinoId String
+    treino   Treino @relation(fields: [treinoId], references: [id], onDelete: Cascade)
+    raia     Int
+    chegadas Int    @default(0)
+    metros   Int    @default(0)
+    parciais Json?  // tempos entre chegadas, em ms
+
+    @@unique([treinoId, raia])
+    @@allow('all', auth() != null && treino.userId == auth().id)
+}

@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Contador de Voltas</title>
+<style>
+:root{--bg:#0b1620;--panel:#12222f;--line:#24394a;--txt:#e8f1f7;--mut:#8aa3b5;--acc:#2fb6e8;--hit:#ffd23f;--ok:#3ddc84;--bad:#ff5d5d}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;gap:8px}
+h1{font-size:18px;margin:0}
+button,select,input{font:inherit;color:var(--txt);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+button{cursor:pointer}
+button.pri{background:var(--acc);border-color:var(--acc);color:#04202d;font-weight:700}
+button.warn{border-color:var(--bad);color:var(--bad)}
+#stage{position:relative;margin:0 16px;border-radius:12px;overflow:hidden;background:#000;touch-action:none}
+#stage video{display:block;width:100%;height:auto}
+#ov{position:absolute;inset:0;width:100%;height:100%}
+#hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--mut)}
+#lanes{display:grid;gap:8px;margin:12px 16px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.lane{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
+.lane.flash{border-color:var(--hit);box-shadow:0 0 0 2px var(--hit) inset}
+.lane .top{display:flex;justify-content:space-between;color:var(--mut);font-size:13px}
+.lane .n{font-size:40px;font-weight:800;line-height:1.1}
+.lane .m{font-size:16px;color:var(--acc);font-weight:700}
+.lane .t{font-size:12px;color:var(--mut);min-height:1.4em}
+.lane .bar{height:5px;background:var(--line);border-radius:3px;margin:6px 0;overflow:hidden}
+.lane .bar i{display:block;height:100%;width:0;background:var(--ok)}
+.lane .adj{display:flex;gap:6px}
+.lane .adj button{flex:1;padding:4px}
+details{margin:12px 16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+summary{cursor:pointer;font-weight:700}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:10px 0}
+.row label{display:flex;align-items:center;gap:8px;flex:1 1 220px}
+.row input[type=range]{flex:1}
+small,.mut{color:var(--mut)}
+#log{max-height:160px;overflow:auto;font-size:13px;color:var(--mut);margin:6px 0 0;padding-left:18px}
+.status{font-size:12px;color:var(--mut)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏊 Contador de Voltas</h1>
+  <div style="display:flex;gap:8px">
+    <button id="btnCam" class="pri">Ligar câmera</button>
+    <button id="btnRun" disabled>Iniciar</button>
+  </div>
+</header>
+
+<div id="stage">
+  <video id="vid" playsinline muted></video>
+  <canvas id="ov"></canvas>
+  <div id="hint">Coloque o celular na borda (lado da câmera), mirando a parede onde os nadadores batem a mão.<br>Toque em <b>Ligar câmera</b>.</div>
+</div>
+<p class="status" style="margin:6px 16px" id="status">Arraste as linhas amarelas para alinhar com as raias e a faixa azul com a parede.</p>
+
+<div id="lanes"></div>
+
+<details open>
+  <summary>Configuração</summary>
+  <div class="row">
+    <label>Raias <select id="nLanes"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option><option>7</option><option>8</option></select></label>
+    <label>Piscina (m) <input id="poolLen" type="number" value="25" min="10" max="100" style="width:80px"></label>
+  </div>
+  <div class="row">
+    <label>Nadador começa <select id="startAt">
+      <option value="far">na outra ponta (1ª chegada = 25 m)</option>
+      <option value="cam">do lado da câmera (cada chegada = 50 m)</option>
+    </select></label>
+  </div>
+  <div class="row">
+    <label>Sensibilidade <input id="sens" type="range" min="1" max="10" value="5"><span id="sensV">5</span></label>
+  </div>
+  <div class="row">
+    <label>Intervalo mínimo entre chegadas (s) <input id="minGap" type="range" min="10" max="120" value="30"><span id="minGapV">30</span></label>
+  </div>
+  <div class="row">
+    <label>Tempo parado na parede antes de rearmar (s) <input id="rearm" type="range" min="1" max="10" value="3"><span id="rearmV">3</span></label>
+  </div>
+  <div class="row">
+    <label><input id="beep" type="checkbox" checked> Bipe ao contar</label>
+    <label><input id="mirrorLanes" type="checkbox"> Numerar raias da direita p/ esquerda</label>
+  </div>
+  <div class="row">
+    <button id="btnReset" class="warn">Zerar contagens</button>
+    <button id="btnResetGeo">Redefinir linhas</button>
+  </div>
+  <small>Dica: “intervalo mínimo” evita contar duas vezes a mesma chegada (respingo, virada). Para 50 m (ida e volta), nadadores rápidos levam ~30 s; iniciantes, 60 s+.</small>
+</details>
+
+<details>
+  <summary>Registro</summary>
+  <ol id="log"></ol>
+</details>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const vid=$('vid'),ov=$('ov'),octx=ov.getContext('2d'),stage=$('stage');
+const PW=160; // largura de processamento
+const proc=document.createElement('canvas'),pctx=proc.getContext('2d',{willReadFrequently:true});
+let PH=120,bg=null,running=false,camOn=false,wakeLock=null,audio=null;
+
+const store={get(k,d){try{const v=localStorage.getItem('cv_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+             set(k,v){try{localStorage.setItem('cv_'+k,JSON.stringify(v))}catch(e){}}};
+
+// ---------- geometria (normalizada 0..1) ----------
+let geo=store.get('geo',null);
+function defaultGeo(n){const d=[];for(let i=0;i<=n;i++)d.push(0.05+0.9*i/n);return{div:d,y1:0.55,y2:0.85}}
+function nLanes(){return +$('nLanes').value}
+
+// ---------- estado das raias ----------
+let lanes=[];
+function makeLanes(){
+  const n=nLanes();
+  if(!geo||geo.div.length!==n+1)geo=defaultGeo(n);
+  const old=lanes;
+  lanes=[];
+  for(let i=0;i<n;i++){
+    const o=old[i]||{};
+    lanes.push({count:o.count||0,times:o.times||[],state:'idle',hot:0,cold:0,floor:o.floor||0.01,act:0,lastCount:-Infinity});
+  }
+  renderLaneCards();saveAll();
+}
+function laneLabel(i){return $('mirrorLanes').checked?nLanes()-i:i+1}
+function meters(c){
+  const L=+$('poolLen').value||25;
+  if(c<=0)return 0;
+  return $('startAt').value==='far'?L+2*L*(c-1):2*L*c;
+}
+function fmt(ms){const s=Math.round(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+
+function renderLaneCards(){
+  const box=$('lanes');box.innerHTML='';
+  lanes.forEach((ln,i)=>{
+    const d=document.createElement('div');d.className='lane';d.id='lane'+i;
+    d.innerHTML=`<div class="top"><span>Raia ${laneLabel(i)}</span><span class="st"></span></div>
+      <div class="n">0</div><div class="m">0 m</div><div class="bar"><i></i></div><div class="t"></div>
+      <div class="adj"><button data-a="-1">−1</button><button data-a="1">+1</button></div>`;
+    d.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      const a=+b.dataset.a;
+      if(a>0){addCount(i,performance.now(),true)}else if(ln.count>0){ln.count--;ln.times.pop();log(`Raia ${laneLabel(i)}: −1 manual`)}
+      updateCard(i);saveAll();
+    });
+    box.appendChild(d);updateCard(i);
+  });
+}
+function updateCard(i){
+  const ln=lanes[i],d=$('lane'+i);if(!d)return;
+  d.querySelector('.n').textContent=ln.count;
+  d.querySelector('.m').textContent=meters(ln.count)+' m';
+  const t=ln.times;let txt='';
+  if(t.length>=2){txt='Último 50 m: '+fmt(t[t.length-1]-t[t.length-2])}
+  d.querySelector('.t').textContent=txt;
+}
+
+function addCount(i,now,manual){
+  const ln=lanes[i];ln.count++;ln.times.push(Date.now());ln.lastCount=now;
+  log(`Raia ${laneLabel(i)}: chegada ${ln.count} → ${meters(ln.count)} m${manual?' (manual)':''}`);
+  const d=$('lane'+i);if(d){d.classList.add('flash');setTimeout(()=>d.classList.remove('flash'),700)}
+  if(!manual&&$('beep').checked)beep(600+i*80);
+  updateCard(i);saveAll();
+}
+function log(msg){const li=document.createElement('li');li.textContent=new Date().toLocaleTimeString()+' — '+msg;$('log').prepend(li)}
+function beep(f){try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=f;g.gain.value=.15;o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.15)}catch(e){}}
+
+function saveAll(){
+  store.set('geo',geo);
+  store.set('lanes',lanes.map(l=>({count:l.count,times:l.times.slice(-200)})));
+  store.set('cfg',{n:$('nLanes').value,L:$('poolLen').value,s:$('startAt').value,sens:$('sens').value,gap:$('minGap').value,re:$('rearm').value,beep:$('beep').checked,mir:$('mirrorLanes').checked});
+}
+function loadAll(){
+  const c=store.get('cfg',null);
+  if(c){$('nLanes').value=c.n;$('poolLen').value=c.L;$('startAt').value=c.s;$('sens').value=c.sens;$('minGap').value=c.gap;$('rearm').value=c.re;$('beep').checked=c.beep;$('mirrorLanes').checked=c.mir}
+  const ls=store.get('lanes',[]);lanes=ls.map(l=>({count:l.count||0,times:l.times||[]}));
+  ['sens','minGap','rearm'].forEach(k=>$(k+'V').textContent=$(k).value);
+}
+
+// ---------- câmera ----------
+async function startCam(){
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}});
+    vid.srcObject=s;await vid.play();camOn=true;$('hint').style.display='none';
+    PH=Math.round(PW*vid.videoHeight/vid.videoWidth);proc.width=PW;proc.height=PH;bg=null;
+    $('btnCam').textContent='Câmera ligada';$('btnCam').disabled=true;$('btnRun').disabled=false;$('btnRun').classList.add('pri');$('btnCam').classList.remove('pri');
+    requestAnimationFrame(draw);
+  }catch(e){$('hint').innerHTML='Não foi possível abrir a câmera: '+e.message+'<br><small>A página precisa estar em HTTPS e com permissão de câmera.</small>'}
+}
+async function keepAwake(on){
+  try{if(on&&'wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen')}else if(wakeLock){await wakeLock.release();wakeLock=null}}catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(running&&document.visibilityState==='visible')keepAwake(true)});
+
+// ---------- processamento ----------
+let lastProc=0;
+function processFrame(now){
+  pctx.drawImage(vid,0,0,PW,PH);
+  const px=pctx.getImageData(0,0,PW,PH).data,N=PW*PH;
+  const g=new Float32Array(N);
+  for(let i=0,j=0;i<N;i++,j+=4)g[i]=.3*px[j]+.59*px[j+1]+.11*px[j+2];
+  if(!bg){bg=g;return}
+  const sens=+$('sens').value,thr=40-sens*3; // limiar de pixel
+  const y1=Math.floor(geo.y1*PH),y2=Math.ceil(geo.y2*PH);
+  const minGap=+$('minGap').value*1000,rearm=+$('rearm').value*1000,dt=now-lastProc;
+  lanes.forEach((ln,i)=>{
+    const x1=Math.floor(geo.div[i]*PW),x2=Math.ceil(geo.div[i+1]*PW);
+    let on=0,tot=0;
+    for(let y=y1;y<y2;y++)for(let x=x1;x<x2;x++){const k=y*PW+x;tot++;if(Math.abs(g[k]-bg[k])>thr)on++}
+    const a=tot?on/tot:0;ln.act=a;
+    // piso de ruído adaptativo (ondas, reflexo) só aprende quando a raia está vazia
+    if(ln.state==='idle'&&a<ln.floor*3+0.02)ln.floor=ln.floor*0.98+a*0.02;
+    const hi=Math.max(0.04,ln.floor*3+0.12-sens*0.008),lo=Math.max(0.02,ln.floor*1.5+0.03);
+    ln.hi=hi;
+    if(ln.state==='idle'){
+      if(a>hi){ln.hot+=dt;if(ln.hot>=250){ln.state='active';ln.cold=0;
+        if(now-ln.lastCount>=minGap)addCount(i,now,false);
+        else log(`Raia ${laneLabel(i)}: movimento ignorado (antes do intervalo mínimo)`);}}
+      else ln.hot=0;
+    }else{
+      if(a<lo){ln.cold+=dt;if(ln.cold>=rearm){ln.state='idle';ln.hot=0}}else ln.cold=0;
+    }
+  });
+  // fundo se adapta devagar (luz, câmera) e mais devagar onde há movimento
+  for(let i=0;i<N;i++){const d=Math.abs(g[i]-bg[i]);bg[i]+=(g[i]-bg[i])*(d>thr?0.01:0.08)}
+}
+
+function draw(now){
+  if(!camOn)return;
+  const r=stage.getBoundingClientRect(),dpr=devicePixelRatio||1;
+  if(ov.width!==Math.round(r.width*dpr)||ov.height!==Math.round(r.height*dpr)){ov.width=Math.round(r.width*dpr);ov.height=Math.round(r.height*dpr)}
+  if(running&&now-lastProc>=100){processFrame(now);lastProc=now}
+  const W=ov.width,H=ov.height;octx.clearRect(0,0,W,H);
+  const y1=geo.y1*H,y2=geo.y2*H;
+  octx.fillStyle='rgba(47,182,232,.15)';octx.fillRect(0,y1,W,y2-y1);
+  octx.strokeStyle='#2fb6e8';octx.lineWidth=2*dpr;
+  [y1,y2].forEach(y=>{octx.beginPath();octx.moveTo(0,y);octx.lineTo(W,y);octx.stroke()});
+  lanes.forEach((ln,i)=>{
+    const x1=geo.div[i]*W,x2=geo.div[i+1]*W;
+    if(running){octx.fillStyle=ln.state==='active'?'rgba(255,210,63,.35)':`rgba(61,220,132,${Math.min(.4,ln.act*2)})`;octx.fillRect(x1,y1,x2-x1,y2-y1)}
+    octx.fillStyle='#fff';octx.font=`bold ${14*dpr}px system-ui`;octx.textAlign='center';
+    octx.fillText(`R${laneLabel(i)}: ${ln.count}`,(x1+x2)/2,y1-6*dpr);
+    const bar=document.querySelector(`#lane${i} .bar i`);if(bar)bar.style.width=Math.min(100,ln.act/(ln.hi||.1)*100)+'%';
+    const st=document.querySelector(`#lane${i} .st`);if(st)st.textContent=running?(ln.state==='active'?'na parede':'nadando'):'';
+  });
+  octx.strokeStyle='#ffd23f';octx.lineWidth=3*dpr;
+  geo.div.forEach(d=>{const x=d*W;octx.beginPath();octx.moveTo(x,y1-20*dpr);octx.lineTo(x,y2+20*dpr);octx.stroke();
+    octx.fillStyle='#ffd23f';octx.beginPath();octx.arc(x,y2+20*dpr,8*dpr,0,7);octx.fill()});
+  requestAnimationFrame(draw);
+}
+
+// ---------- arrastar linhas ----------
+let drag=null;
+stage.addEventListener('pointerdown',e=>{
+  const r=stage.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height,tol=24/r.width,toly=24/r.height;
+  let best=null,bd=1e9;
+  geo.div.forEach((d,i)=>{const dd=Math.abs(d-x);if(dd<tol&&dd<bd){bd=dd;best={t:'div',i}}});
+  if(!best){if(Math.abs(y-geo.y1)<toly)best={t:'y1'};else if(Math.abs(y-geo.y2)<toly)best={t:'y2'}}
+  if(best){drag=best;stage.setPointerCapture(e.pointerId);e.preventDefault()}
+});
+stage.addEventListener('pointermove',e=>{
+  if(!drag)return;const r=stage.getBoundingClientRect(),x=Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)),y=Math.min(1,Math.max(0,(e.clientY-r.top)/r.height));
+  if(drag.t==='div'){const i=drag.i,lo=i>0?geo.div[i-1]+.02:0,hi=i<geo.div.length-1?geo.div[i+1]-.02:1;geo.div[i]=Math.min(hi,Math.max(lo,x))}
+  else if(drag.t==='y1')geo.y1=Math.min(geo.y2-.03,y);else geo.y2=Math.max(geo.y1+.03,y);
+  bg=null;
+});
+stage.addEventListener('pointerup',()=>{if(drag){drag=null;saveAll()}});
+
+// ---------- controles ----------
+$('btnCam').onclick=startCam;
+$('btnRun').onclick=()=>{
+  running=!running;bg=null;
+  $('btnRun').textContent=running?'Pausar':'Iniciar';
+  $('status').textContent=running?'Contando… mantenha o celular parado. Aguarde ~5 s com a água sem nadadores para calibrar o ruído.':'Pausado.';
+  if(running)lanes.forEach(l=>{l.state='idle';l.hot=0;l.cold=0});
+  keepAwake(running);log(running?'Contagem iniciada':'Contagem pausada');
+};
+$('nLanes').onchange=()=>{geo=null;makeLanes()};
+['poolLen','startAt','mirrorLanes'].forEach(k=>$(k).onchange=()=>{renderLaneCards();saveAll()});
+['sens','minGap','rearm'].forEach(k=>$(k).oninput=()=>{$(k+'V').textContent=$(k).value;saveAll()});
+$('beep').onchange=saveAll;
+$('btnReset').onclick=()=>{if(!confirmReset())return;lanes.forEach(l=>{l.count=0;l.times=[];l.lastCount=-Infinity});renderLaneCards();saveAll();log('Contagens zeradas')};
+let resetArm=0;function confirmReset(){const n=Date.now();if(n-resetArm<3000)return true;resetArm=n;$('btnReset').textContent='Toque de novo p/ confirmar';setTimeout(()=>$('btnReset').textContent='Zerar contagens',3000);return false}
+$('btnResetGeo').onclick=()=>{geo=defaultGeo(nLanes());bg=null;saveAll()};
+
+loadAll();makeLanes();
+})();
+</script>
+</body>
+</html>
