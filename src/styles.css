@@ -41,3 +41,72 @@ button.big { background: var(--accent); color: #002433; font-weight: 700; font-s
 .list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--card); border-radius: 12px; padding: 12px 16px; }
 .list li div { display: flex; flex-direction: column; }
 .list small { color: var(--muted); }
+
+/* ---------- comum ---------- */
+h2 { font-size: 20px; margin: 20px 0 8px; }
+.linha-botoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.linha-botoes .big { width: auto; flex: 1; }
+button.ativo { background: var(--accent); color: #002433; }
+button.perigo { background: #b3261e; color: #fff; }
+button.pausar { background: #ffd23f; }
+.dica { color: var(--muted); font-size: 15px; }
+.clicavel { cursor: pointer; flex: 1; }
+.aviso { background: #5a3d00; color: #ffe7a3; padding: 10px 14px; border-radius: 10px; }
+input, select { font: inherit; background: #0e2333; color: var(--fg); border: 1px solid #2b4a60; border-radius: 10px; padding: 10px; min-height: 44px; width: 100%; }
+input[type=checkbox] { width: 24px; height: 24px; min-height: 0; }
+input[type=range] { padding: 0; }
+.grid-form { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.grid-form label { display: flex; flex-direction: column; gap: 6px; font-size: 15px; color: var(--muted); }
+.grid-form label.check { flex-direction: row; align-items: center; color: var(--fg); }
+
+/* ---------- contagem ---------- */
+main.treino { max-width: 960px; }
+.painel-fonte { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 24px 0; text-align: center; }
+.botao-arquivo { background: var(--card); padding: 14px 20px; border-radius: 12px; cursor: pointer; }
+.stage { position: relative; width: 100%; background: #000; border-radius: 12px; overflow: hidden; touch-action: none; aspect-ratio: 16 / 9; margin-top: 8px; }
+.stage.oculto { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.stage video, .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.stage video { object-fit: fill; }
+.faixa { position: absolute; left: 0; right: 0; top: 0; background: rgba(0,0,0,.6); padding: 6px 10px; font-size: 14px; text-align: center; }
+.calibracao, .controles, .ajustes, .debug { margin-top: 12px; }
+.passo { font-size: 18px; }
+.tempo-total { font-size: 22px; font-weight: 700; margin: 8px 0; }
+.debug-canvas { width: 100%; max-width: 420px; display: block; margin: 0 auto; image-rendering: pixelated; background: #000; border-radius: 8px; }
+.cards { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin-top: 12px; }
+.card-raia { background: var(--card); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 2px; }
+.card-raia .topo { display: flex; justify-content: space-between; font-weight: 700; font-size: 16px; }
+.card-raia .estado { font-size: 13px; font-weight: 600; }
+.card-raia .numero { font-size: 56px; font-weight: 800; line-height: 1.05; }
+.card-raia .metros { font-size: 20px; color: var(--accent); font-weight: 700; }
+.card-raia .parcial { font-size: 13px; color: var(--muted); }
+.card-raia .ajuste { display: flex; gap: 8px; margin-top: 8px; }
+.card-raia .ajuste button { flex: 1; font-size: 22px; font-weight: 700; }
+.log ul { font-size: 13px; color: var(--muted); padding-left: 18px; }
+.tela-escura { position: fixed; inset: 0; background: #000; z-index: 10; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); align-content: center; gap: 16px; padding: 16px; text-align: center; }
+.tela-escura div { display: flex; flex-direction: column; }
+.tela-escura span { font-size: 22px; color: var(--muted); }
+.tela-escura strong { font-size: 88px; line-height: 1; }
+.tela-escura small { font-size: 22px; color: var(--accent); }
+.tela-escura p { grid-column: 1 / -1; color: #555; }
+
+/* ---------- painel ---------- */
+.filtros { display: flex; gap: 8px; margin: 12px 0; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.tile { background: var(--card); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; }
+.tile small { color: var(--muted); font-size: 14px; }
+.tile strong { font-size: 30px; }
+.grafico-card { background: var(--card); border-radius: 14px; padding: 12px 14px; margin-top: 12px; }
+.grafico-topo { display: flex; justify-content: space-between; align-items: center; }
+.grafico-topo h2 { margin: 0; }
+.grafico { position: relative; }
+.grafico svg { width: 100%; height: auto; display: block; }
+.grafico .grade { stroke: rgba(255,255,255,.08); }
+.grafico .base { stroke: rgba(255,255,255,.35); }
+.grafico .eixo { fill: var(--muted); font-size: 12px; }
+.grafico .barra { fill: var(--accent); }
+.grafico .barra.ativa { fill: #7fdcfa; }
+.tooltip { position: absolute; top: 4px; transform: translateX(-50%); background: #0b1d2a; border: 1px solid #2b4a60; border-radius: 8px; padding: 6px 10px; display: flex; flex-direction: column; font-size: 13px; pointer-events: none; white-space: nowrap; }
+.tabela { width: 100%; border-collapse: collapse; font-size: 16px; }
+.tabela th, .tabela td { text-align: right; padding: 8px; border-bottom: 1px solid #22405a; }
+.tabela th:first-child, .tabela td:first-child { text-align: left; }
+@media (max-width: 480px) { .tile strong { font-size: 22px; } }

@@ -38,6 +38,22 @@ export class SchemaType implements SchemaDef {
                     attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(25) }] }] as readonly AttributeApplication[],
                     default: 25 as FieldDefault
                 },
+                regraInicio: {
+                    name: "regraInicio",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("outra") }] }] as readonly AttributeApplication[],
+                    default: "outra" as FieldDefault
+                },
+                calibracao: {
+                    name: "calibracao",
+                    type: "Json",
+                    optional: true
+                },
+                config: {
+                    name: "config",
+                    type: "Json",
+                    optional: true
+                },
                 inicio: {
                     name: "inicio",
                     type: "DateTime",
@@ -120,6 +136,12 @@ export class SchemaType implements SchemaDef {
                     name: "parciais",
                     type: "Json",
                     optional: true
+                },
+                tempoTotalMs: {
+                    name: "tempoTotalMs",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 }
             },
             attributes: [

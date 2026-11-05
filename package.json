@@ -13,7 +13,8 @@
     "typecheck": "tsc",
     "build": "zenstack generate && tsc && vite build",
     "start": "dotenv -e .env.local -- tsx server/dev.ts",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.6",
@@ -41,6 +42,7 @@
     "dotenv-cli": "^11.1.0",
     "tsx": "^4.23.15",
     "typescript": "~5.9",
-    "vite": "^8.3.6"
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
   }
 }

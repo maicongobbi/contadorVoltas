@@ -20,6 +20,9 @@ model Treino {
     userId             String          @default(auth().id)
     nome               String?
     comprimentoPiscina Int             @default(25)
+    regraInicio        String          @default("outra") // "outra" (começa na outra ponta) ou "camera"
+    calibracao         Json?           // pontos tocados, raias, distâncias
+    config             Json?           // sensibilidade, intervalos etc.
     inicio             DateTime        @default(now())
     fim                DateTime?
     raias              RaiaResultado[]
@@ -40,6 +43,7 @@ model RaiaResultado {
     chegadas Int    @default(0)
     metros   Int    @default(0)
     parciais Json?  // tempos entre chegadas, em ms
+    tempoTotalMs Int @default(0)
 
     @@unique([treinoId, raia])
     @@allow('all', auth() != null && treino.userId == auth().id)
