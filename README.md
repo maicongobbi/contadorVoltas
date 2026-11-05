@@ -10,13 +10,14 @@ App para contar chegadas por raia na piscina usando a câmera do celular. Especi
 - **Banco:** Neon Postgres
 - **Acesso a dados:** ZenStack v3 (`zenstack/schema.zmodel`), com regras de acesso por usuário
 
-Fluxo de login: o navegador entra com Google pelo Neon Auth e manda o JWT para a API (`Authorization: Bearer`). A API confere o JWT pelo JWKS do Neon e usa `db.$setAuth(user)` para que o ZenStack aplique as regras `@@allow` (cada usuário só vê os próprios treinos).
+Fluxo de login: o navegador fala só com `/api/auth` no próprio domínio, e o servidor repassa para o Neon Auth (`handleAuthProxyRequest`). Assim o cookie de sessão é do nosso domínio e não é bloqueado como cookie de terceiros. A API lê o usuário pelo cookie e usa `db.$setAuth(user)` para que o ZenStack aplique as regras `@@allow` (cada usuário só vê os próprios treinos).
 
 ## Rodar localmente
 
 ```bash
 npm install
 neon env pull        # cria .env.local com DATABASE_URL e NEON_AUTH_*
+echo "NEON_AUTH_COOKIE_SECRET=$(openssl rand -base64 32)" >> .env.local
 npm run dev          # web em http://localhost:5173, API em :3001
 ```
 
@@ -28,7 +29,7 @@ npm run dev          # web em http://localhost:5173, API em :3001
 
 ## Deploy na Vercel
 
-Variáveis necessárias no projeto: `DATABASE_URL`, `NEON_AUTH_BASE_URL`, `NEON_AUTH_JWKS_URL`.
+Variáveis necessárias no projeto: `DATABASE_URL`, `NEON_AUTH_BASE_URL` e `NEON_AUTH_COOKIE_SECRET` (gere com `openssl rand -base64 32`).
 Depois do primeiro deploy, libere o domínio no Neon Auth:
 
 ```bash

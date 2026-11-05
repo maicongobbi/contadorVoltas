@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { verifyBearer, type AuthUser } from './auth.js';
+import { authProxy, getSessionUser, type AuthUser } from './auth.js';
 import { dbFor, rawDb } from './db.js';
 
 type Env = { Variables: { user: AuthUser } };
@@ -12,9 +12,13 @@ app.get('/health', async (c) => {
   return c.json({ ok: true, db: rows[0]?.ok === 1 });
 });
 
-// Tudo abaixo de /api/* (exceto /health) exige login
+// Ponte para o Neon Auth: o navegador fala só com o nosso domínio, e os cookies
+// de login ficam aqui (sem cookie de terceiros, que Brave/Safari bloqueiam).
+app.all('/auth/*', (c) => authProxy(c.req.raw, c.req.path.replace(/^\/api\/auth\//, '')));
+
+// Tudo abaixo de /api/* (exceto /health e /auth) exige login
 app.use('*', async (c, next) => {
-  const user = await verifyBearer(c.req.header('Authorization'));
+  const user = await getSessionUser(c.req.raw);
   if (!user) return c.json({ error: 'Não autenticado' }, 401);
   c.set('user', user);
   await next();

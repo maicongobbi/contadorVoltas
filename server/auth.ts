@@ -1,27 +1,31 @@
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { handleAuthProxyRequest } from '@neon/auth/server';
 
-// O login acontece no navegador via Neon Auth (Better Auth gerenciado).
-// O front manda o JWT em `Authorization: Bearer`, e aqui só verificamos a assinatura.
-const baseUrl = process.env.NEON_AUTH_BASE_URL;
-const jwksUrl = process.env.NEON_AUTH_JWKS_URL ?? (baseUrl ? `${baseUrl}/.well-known/jwks.json` : undefined);
-
-const jwks = jwksUrl ? createRemoteJWKSet(new URL(jwksUrl)) : undefined;
+// O login acontece pelo Neon Auth (Better Auth gerenciado), através da ponte em /api/auth.
+// Como front e API estão no mesmo domínio, o cookie de sessão chega junto em cada chamada.
+const config = () => ({
+  baseUrl: process.env.NEON_AUTH_BASE_URL!,
+  cookieSecret: process.env.NEON_AUTH_COOKIE_SECRET!,
+  sameSite: 'lax' as const,
+});
 
 export type AuthUser = { id: string; email?: string; name?: string };
 
-export async function verifyBearer(header: string | undefined): Promise<AuthUser | undefined> {
-  if (!jwks || !header?.startsWith('Bearer ')) return undefined;
-  try {
-    const { payload } = await jwtVerify(header.slice(7), jwks, {
-      issuer: baseUrl ? new URL(baseUrl).origin : undefined,
-    });
-    if (!payload.sub) return undefined;
-    return {
-      id: payload.sub,
-      email: typeof payload.email === 'string' ? payload.email : undefined,
-      name: typeof payload.name === 'string' ? payload.name : undefined,
-    };
-  } catch {
-    return undefined;
-  }
+/** Repassa qualquer chamada de /api/auth/* para o Neon Auth. */
+export function authProxy(request: Request, path: string) {
+  return handleAuthProxyRequest({ ...config(), request, path });
+}
+
+/** Lê o usuário logado a partir dos cookies da requisição. */
+export async function getSessionUser(request: Request): Promise<AuthUser | undefined> {
+  const cookie = request.headers.get('cookie');
+  if (!cookie) return undefined;
+  const origin = new URL(request.url).origin;
+  const res = await authProxy(
+    new Request(`${origin}/api/auth/get-session`, { headers: { cookie, origin } }),
+    'get-session',
+  );
+  if (!res.ok) return undefined;
+  const data = (await res.json().catch(() => null)) as { user?: { id: string; email?: string; name?: string } } | null;
+  if (!data?.user?.id) return undefined;
+  return { id: data.user.id, email: data.user.email, name: data.user.name };
 }

@@ -11,8 +11,8 @@ export function Login() {
     try {
       const { error } = await signInWithGoogle();
       if (error) setError(error.message ?? 'Não foi possível entrar com o Google.');
-    } catch {
-      setError('Não foi possível entrar com o Google.');
+    } catch (e) {
+      setError(`Não foi possível entrar com o Google. ${(e as Error).message ?? ''}`);
     } finally {
       setLoading(false);
     }
